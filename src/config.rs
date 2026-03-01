@@ -249,10 +249,10 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        list_account_ids, load_policy_config, missing_required_account_env, resolve_account_config,
-        DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_MAX_ATTACHMENTS, DEFAULT_MAX_ATTACHMENT_BYTES,
+        DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_MAX_ATTACHMENT_BYTES, DEFAULT_MAX_ATTACHMENTS,
         DEFAULT_MAX_HTML_CHARS, DEFAULT_MAX_MESSAGE_BYTES, DEFAULT_MAX_RECIPIENTS,
-        DEFAULT_MAX_TEXT_CHARS, DEFAULT_SOCKET_TIMEOUT_MS,
+        DEFAULT_MAX_TEXT_CHARS, DEFAULT_SOCKET_TIMEOUT_MS, list_account_ids, load_policy_config,
+        missing_required_account_env, resolve_account_config,
     };
 
     fn env_map(entries: &[(&str, &str)]) -> HashMap<String, String> {
