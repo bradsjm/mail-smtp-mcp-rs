@@ -34,8 +34,3 @@ unsafe_code = "forbid"
 dbg_macro = "deny"
 todo = "deny"
 unwrap_used = "deny"
-
-[alias]
-fmt-check = "fmt --all -- --check"
-lint = "clippy --all-targets -- -D warnings"
-test-all = "test --all-targets"

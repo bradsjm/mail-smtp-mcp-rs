@@ -37,8 +37,9 @@ if [[ "$ready" -ne 1 ]]; then
 fi
 
 echo "Running ignored GreenMail integration tests"
+RUN_GREENMAIL_TESTS=1 \
 GREENMAIL_EXTERNAL=1 \
 GREENMAIL_HOST=localhost \
 GREENMAIL_SMTP_PORT=3025 \
 GREENMAIL_IMAP_PORT=3143 \
-cargo test --test smtp_greenmail -- --ignored --nocapture
+cargo test --test smtp_greenmail -- --nocapture
