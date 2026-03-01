@@ -56,17 +56,23 @@ pub fn list_account_ids(env: &HashMap<String, String>) -> Vec<String> {
     let mut ids = BTreeSet::new();
 
     for key in env.keys() {
-        if let Some(rest) = key.strip_prefix("MAIL_SMTP_") {
-            let Some((candidate, _suffix)) = rest.split_once('_') else {
-                continue;
-            };
-
-            if candidate.is_empty() || !candidate.chars().all(|ch| ch.is_ascii_alphanumeric()) {
-                continue;
-            }
-
-            ids.insert(candidate.to_ascii_lowercase());
+        let Some(rest) = key.strip_prefix("MAIL_SMTP_") else {
+            continue;
+        };
+        let Some((candidate, suffix)) = rest.rsplit_once('_') else {
+            continue;
+        };
+        if !matches!(
+            suffix,
+            "HOST" | "USER" | "PASS" | "PORT" | "SECURE" | "FROM"
+        ) {
+            continue;
         }
+        if candidate.is_empty() || !candidate.chars().all(|ch| ch.is_ascii_alphanumeric()) {
+            continue;
+        }
+
+        ids.insert(candidate.to_ascii_lowercase());
     }
 
     ids.into_iter().collect()
@@ -243,10 +249,10 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_MAX_ATTACHMENT_BYTES, DEFAULT_MAX_ATTACHMENTS,
+        list_account_ids, load_policy_config, missing_required_account_env, resolve_account_config,
+        DEFAULT_CONNECT_TIMEOUT_MS, DEFAULT_MAX_ATTACHMENTS, DEFAULT_MAX_ATTACHMENT_BYTES,
         DEFAULT_MAX_HTML_CHARS, DEFAULT_MAX_MESSAGE_BYTES, DEFAULT_MAX_RECIPIENTS,
-        DEFAULT_MAX_TEXT_CHARS, DEFAULT_SOCKET_TIMEOUT_MS, list_account_ids, load_policy_config,
-        missing_required_account_env, resolve_account_config,
+        DEFAULT_MAX_TEXT_CHARS, DEFAULT_SOCKET_TIMEOUT_MS,
     };
 
     fn env_map(entries: &[(&str, &str)]) -> HashMap<String, String> {
@@ -322,5 +328,20 @@ mod tests {
         assert_eq!(policy.max_html_chars, DEFAULT_MAX_HTML_CHARS);
         assert_eq!(policy.connect_timeout_ms, DEFAULT_CONNECT_TIMEOUT_MS);
         assert_eq!(policy.socket_timeout_ms, DEFAULT_SOCKET_TIMEOUT_MS);
+    }
+
+    #[test]
+    fn global_policy_env_vars_do_not_create_account_ids() {
+        let env = env_map(&[
+            ("MAIL_SMTP_DEFAULT_HOST", "smtp.example.com"),
+            ("MAIL_SMTP_DEFAULT_USER", "alice"),
+            ("MAIL_SMTP_DEFAULT_PASS", "secret"),
+            ("MAIL_SMTP_SEND_ENABLED", "true"),
+            ("MAIL_SMTP_MAX_RECIPIENTS", "10"),
+            ("MAIL_SMTP_CONNECT_TIMEOUT_MS", "5000"),
+        ]);
+
+        let ids = list_account_ids(&env);
+        assert_eq!(ids, vec!["default".to_string()]);
     }
 }

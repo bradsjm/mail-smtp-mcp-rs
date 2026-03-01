@@ -131,4 +131,21 @@ mod tests {
         assert!(startup.ok);
         assert!(startup.missing_env.is_empty());
     }
+
+    #[test]
+    fn startup_ignores_global_policy_env_vars_for_account_discovery() {
+        let env = env_map(&[
+            ("MAIL_SMTP_DEFAULT_HOST", "smtp.example.com"),
+            ("MAIL_SMTP_DEFAULT_USER", "alice"),
+            ("MAIL_SMTP_DEFAULT_PASS", "secret"),
+            ("MAIL_SMTP_SEND_ENABLED", "true"),
+            ("MAIL_SMTP_MAX_MESSAGE_BYTES", "123456"),
+        ]);
+
+        let startup = check_startup_env(&env);
+
+        assert!(startup.ok);
+        assert_eq!(startup.account_ids, vec!["default".to_string()]);
+        assert!(startup.missing_env.is_empty());
+    }
 }

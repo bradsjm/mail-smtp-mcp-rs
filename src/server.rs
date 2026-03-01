@@ -19,7 +19,8 @@ use crate::errors::AppError;
 use crate::policy::{enforce_recipient_policy, normalize_recipients};
 use crate::validation::{
     MessageSizeParts, contains_carriage_return_or_line_feed, decode_base64_strict,
-    estimate_message_bytes, is_safe_filename, validate_email_address,
+    estimate_base64_transport_bytes, estimate_message_bytes, is_safe_filename,
+    validate_email_address,
 };
 
 const HARD_MAX_RECIPIENTS: usize = 50;
@@ -119,6 +120,12 @@ struct AttachmentInput {
     filename: String,
     content_base64: String,
     content_type: Option<String>,
+}
+
+struct PreparedAttachment {
+    filename: String,
+    bytes: Vec<u8>,
+    content_type: ContentType,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -300,8 +307,24 @@ impl McpServer {
                     self.config.policy.max_attachment_bytes
                 )));
             }
-            attachment_bytes = attachment_bytes.saturating_add(byte_len);
-            decoded_attachments.push((attachment, bytes));
+
+            let content_type = match attachment.content_type.as_deref() {
+                Some(value) => ContentType::parse(value).map_err(|_| {
+                    AppError::AttachmentError(format!(
+                        "Invalid attachment content_type for {}.",
+                        attachment.filename
+                    ))
+                })?,
+                None => ContentType::TEXT_PLAIN,
+            };
+
+            attachment_bytes =
+                attachment_bytes.saturating_add(estimate_base64_transport_bytes(byte_len));
+            decoded_attachments.push(PreparedAttachment {
+                filename: attachment.filename,
+                bytes,
+                content_type,
+            });
         }
 
         let estimated = estimate_message_bytes(MessageSizeParts {
@@ -447,7 +470,7 @@ fn send_with_smtp(
     text_body: &str,
     html_body: &str,
     recipients: &crate::policy::Recipients,
-    attachments: Vec<(AttachmentInput, Vec<u8>)>,
+    attachments: Vec<PreparedAttachment>,
     connect_timeout_ms: u64,
     socket_timeout_ms: u64,
 ) -> Result<(), AppError> {
@@ -507,13 +530,11 @@ fn send_with_smtp(
         };
 
         let mut mixed = MultiPart::mixed().multipart(body_part);
-        for (attachment, bytes) in attachments {
-            let content_type = match attachment.content_type {
-                Some(value) => ContentType::parse(&value).unwrap_or(ContentType::TEXT_PLAIN),
-                None => ContentType::TEXT_PLAIN,
-            };
-            mixed =
-                mixed.singlepart(Attachment::new(attachment.filename).body(bytes, content_type));
+        for attachment in attachments {
+            mixed = mixed.singlepart(
+                Attachment::new(attachment.filename)
+                    .body(attachment.bytes, attachment.content_type),
+            );
         }
 
         builder
@@ -525,20 +546,23 @@ fn send_with_smtp(
         account.user.clone(),
         account.pass.expose_secret().to_owned(),
     );
+    let timeout = Some(std::time::Duration::from_millis(
+        connect_timeout_ms.max(socket_timeout_ms),
+    ));
     let transport = if account.secure {
         SmtpTransport::relay(&account.host)
             .map_err(|_| AppError::SmtpError("SMTP transport configuration failed.".to_owned()))?
             .credentials(credentials)
             .authentication(vec![Mechanism::Login])
             .port(account.port)
-            .timeout(Some(std::time::Duration::from_millis(connect_timeout_ms)))
+            .timeout(timeout)
             .build()
     } else {
         SmtpTransport::builder_dangerous(&account.host)
             .credentials(credentials)
             .authentication(vec![Mechanism::Login])
             .port(account.port)
-            .timeout(Some(std::time::Duration::from_millis(socket_timeout_ms)))
+            .timeout(timeout)
             .build()
     };
 

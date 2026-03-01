@@ -87,6 +87,16 @@ pub fn estimate_message_bytes(parts: MessageSizeParts) -> usize {
         + (parts.attachment_count * PER_ATTACHMENT_OVERHEAD)
 }
 
+pub fn estimate_base64_transport_bytes(raw_bytes: usize) -> usize {
+    if raw_bytes == 0 {
+        return 0;
+    }
+
+    let encoded_len = raw_bytes.div_ceil(3) * 4;
+    let line_count = encoded_len.div_ceil(76);
+    encoded_len + (line_count * 2)
+}
+
 fn email_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
     REGEX.get_or_init(|| {
