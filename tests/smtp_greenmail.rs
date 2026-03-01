@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::process::Command;
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -13,77 +12,6 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::{sleep, timeout};
 
-const GREENMAIL_IMAGE: &str = "greenmail/standalone:2.1.8";
-const GREENMAIL_NAME: &str = "mail-smtp-mcp-rs-greenmail-test";
-const GREENMAIL_OPTS: &str = "-Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=sender:secret@example.com,recipient:secret@example.com";
-
-struct GreenmailContainer {
-    name: String,
-}
-
-impl GreenmailContainer {
-    fn start() -> Result<Self, String> {
-        let _ = run_docker(["rm", "-f", GREENMAIL_NAME].as_slice());
-
-        run_docker(["pull", GREENMAIL_IMAGE].as_slice())?;
-        run_docker(
-            [
-                "run",
-                "-d",
-                "--rm",
-                "--name",
-                GREENMAIL_NAME,
-                "-e",
-                &format!("GREENMAIL_OPTS={GREENMAIL_OPTS}"),
-                "-p",
-                "3025:3025",
-                "-p",
-                "3143:3143",
-                GREENMAIL_IMAGE,
-            ]
-            .as_slice(),
-        )?;
-
-        Ok(Self {
-            name: GREENMAIL_NAME.to_owned(),
-        })
-    }
-}
-
-impl Drop for GreenmailContainer {
-    fn drop(&mut self) {
-        let _ = run_docker(["rm", "-f", self.name.as_str()].as_slice());
-    }
-}
-
-fn run_docker(args: &[&str]) -> Result<(), String> {
-    let output = Command::new("docker")
-        .args(args)
-        .output()
-        .map_err(|err| format!("failed to run docker {args:?}: {err}"))?;
-
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(format!(
-            "docker {args:?} failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ))
-    }
-}
-
-fn docker_available() -> bool {
-    Command::new("docker")
-        .args(["version"])
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false)
-}
-
-fn greenmail_enabled() -> bool {
-    std::env::var("RUN_GREENMAIL_TESTS").as_deref() == Ok("1")
-}
-
 fn nonce() -> String {
     let micros = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -93,7 +21,6 @@ fn nonce() -> String {
 }
 
 struct GreenmailHarness {
-    _container: Option<GreenmailContainer>,
     smtp_host: String,
     smtp_port: u16,
     imap_host: String,
@@ -106,16 +33,6 @@ struct GreenmailHarness {
 
 impl GreenmailHarness {
     async fn start() -> Result<Self, String> {
-        let external = std::env::var("GREENMAIL_EXTERNAL").as_deref() == Ok("1");
-        let container = if external {
-            None
-        } else {
-            if !docker_available() {
-                return Err("RUN_GREENMAIL_TESTS=1 but docker is unavailable".to_owned());
-            }
-            Some(GreenmailContainer::start()?)
-        };
-
         let smtp_host = std::env::var("GREENMAIL_HOST").unwrap_or_else(|_| "localhost".to_owned());
         let imap_host = smtp_host.clone();
         let smtp_port = std::env::var("GREENMAIL_SMTP_PORT")
@@ -128,7 +45,6 @@ impl GreenmailHarness {
             .unwrap_or(3143);
 
         let harness = Self {
-            _container: container,
             smtp_host,
             smtp_port,
             imap_host,
@@ -354,12 +270,8 @@ fn server_from_env(env: HashMap<String, String>) -> McpServer {
 
 #[tokio::test]
 #[serial_test::serial]
+#[ignore = "requires GreenMail"]
 async fn send_message_success_delivers_mail() {
-    if !greenmail_enabled() {
-        eprintln!("Skipping: RUN_GREENMAIL_TESTS is not set to 1");
-        return;
-    }
-
     let harness = GreenmailHarness::start()
         .await
         .expect("greenmail must start");
@@ -402,12 +314,8 @@ async fn send_message_success_delivers_mail() {
 
 #[tokio::test]
 #[serial_test::serial]
+#[ignore = "requires GreenMail"]
 async fn send_message_with_attachment_delivers_mime_part() {
-    if !greenmail_enabled() {
-        eprintln!("Skipping: RUN_GREENMAIL_TESTS is not set to 1");
-        return;
-    }
-
     let harness = GreenmailHarness::start()
         .await
         .expect("greenmail must start");
@@ -455,12 +363,8 @@ async fn send_message_with_attachment_delivers_mime_part() {
 
 #[tokio::test]
 #[serial_test::serial]
+#[ignore = "requires GreenMail"]
 async fn send_disabled_blocks_live_send() {
-    if !greenmail_enabled() {
-        eprintln!("Skipping: RUN_GREENMAIL_TESTS is not set to 1");
-        return;
-    }
-
     let harness = GreenmailHarness::start()
         .await
         .expect("greenmail must start");
@@ -486,12 +390,8 @@ async fn send_disabled_blocks_live_send() {
 
 #[tokio::test]
 #[serial_test::serial]
+#[ignore = "requires GreenMail"]
 async fn allowlist_blocks_before_smtp() {
-    if !greenmail_enabled() {
-        eprintln!("Skipping: RUN_GREENMAIL_TESTS is not set to 1");
-        return;
-    }
-
     let harness = GreenmailHarness::start()
         .await
         .expect("greenmail must start");

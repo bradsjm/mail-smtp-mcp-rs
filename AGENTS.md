@@ -47,7 +47,7 @@ Run commands from repo root.
 - Run all tests: `cargo test`
 - List tests: `cargo test -- --list`
 - GreenMail integration smoke test script: `scripts/test-greenmail.sh`
-- Integration test binary directly: `cargo test --test smtp_greenmail -- --nocapture`
+- Integration test binary directly: `cargo test --test smtp_greenmail -- --ignored --nocapture`
 
 ### Run a Single Test
 
@@ -60,7 +60,7 @@ Use a test name substring:
 Run a single test and show stdout:
 
 - `cargo test tool_names_match_contract -- --exact --nocapture`
-- `RUN_GREENMAIL_TESTS=1 cargo test --test smtp_greenmail send_message_success_delivers_mail -- --exact --nocapture`
+- `cargo test --test smtp_greenmail send_message_success_delivers_mail -- --ignored --exact --nocapture`
 
 Run tests in one module/file scope:
 
@@ -231,7 +231,7 @@ All listed workflows are currently manual (`workflow_dispatch`).
 
 - Add or update unit tests near changed logic in `config`, `policy`, `validation`, `server`, or `startup` modules.
 - For send-path or policy changes, add/adjust `tests/smtp_greenmail.rs` coverage.
-- Keep GreenMail tests opt-in via `RUN_GREENMAIL_TESTS=1`.
+- Keep GreenMail tests opt-in via `#[ignore]` and run with `--ignored`.
 
 ## Change Discipline for Agents
 

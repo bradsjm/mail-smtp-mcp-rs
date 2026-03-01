@@ -6,14 +6,6 @@ on:
 jobs:
     greenmail-tests:
         runs-on: ubuntu-latest
-        services:
-            greenmail:
-                image: greenmail/standalone:2.1.8
-                env:
-                    GREENMAIL_OPTS: -Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=sender:secret@example.com,recipient:secret@example.com
-                ports:
-                    - 3025:3025
-                    - 3143:3143
 
         steps:
             - name: Checkout
@@ -28,18 +20,7 @@ jobs:
               uses: dtolnay/rust-toolchain@stable
 
             - name: Run GreenMail integration tests
-              env:
-                  RUN_GREENMAIL_TESTS: "1"
-                  GREENMAIL_EXTERNAL: "1"
-                  GREENMAIL_HOST: "localhost"
-                  GREENMAIL_SMTP_PORT: "3025"
-                  GREENMAIL_IMAP_PORT: "3143"
-              run: cargo test --test smtp_greenmail -- --nocapture
+              run: bash scripts/test-greenmail.sh
 
             - name: Run MCP inspector integration tests
-              env:
-                  GREENMAIL_EXTERNAL: "1"
-                  GREENMAIL_HOST: "localhost"
-                  GREENMAIL_SMTP_PORT: "3025"
-                  GREENMAIL_IMAP_PORT: "3143"
-              run: scripts/test-greenmail-mcp-inspector.sh
+              run: bash scripts/test-greenmail-mcp-inspector.sh

@@ -231,6 +231,12 @@ Optional SMTP integration smoke test:
 scripts/test-greenmail.sh
 ```
 
+Run GreenMail integration tests directly (requires a running GreenMail endpoint):
+
+```bash
+cargo test --test smtp_greenmail -- --ignored --nocapture
+```
+
 ## License
 
 MIT License. See [LICENSE](LICENSE).
