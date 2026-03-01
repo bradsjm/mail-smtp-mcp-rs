@@ -1,1 +1,25 @@
-/target
+# Rust
+/target/
+**/*.rs.bk
+# Cargo.lock - committed for reproducible builds
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Rust IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
