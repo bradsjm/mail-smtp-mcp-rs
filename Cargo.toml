@@ -2,6 +2,12 @@
 name = "mail-smtp-mcp-rs"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+description = "Secure SMTP MCP server over stdio with multi-account support, and TLS-only connections"
+repository = "https://github.com/bradsjm/mail-smtp-mcp-rs"
+readme = "README.md"
+keywords = ["mcp", "smtp", "email", "mail", "protocol"]
+categories = ["email", "api-bindings"]
 
 [dependencies]
 base64 = "0.22"
