@@ -19,7 +19,7 @@ jobs:
             labels: ${{ steps.meta.outputs.labels }}
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v4
 
             - id: version
               name: Resolve package version tag
@@ -53,12 +53,12 @@ jobs:
 
     build-amd64:
         needs: meta
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-22.04
         outputs:
             digest: ${{ steps.build.outputs.digest }}
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v4
 
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
@@ -84,12 +84,12 @@ jobs:
 
     build-arm64:
         needs: meta
-        runs-on: ubuntu-24.04-arm
+        runs-on: ubuntu-22.04
         outputs:
             digest: ${{ steps.build.outputs.digest }}
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v4
 
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
@@ -118,7 +118,7 @@ jobs:
             - meta
             - build-amd64
             - build-arm64
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-22.04
         steps:
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
