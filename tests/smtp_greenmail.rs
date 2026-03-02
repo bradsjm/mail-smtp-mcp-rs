@@ -1,3 +1,7 @@
+/// Integration tests for mail-smtp-mcp-rs using a GreenMail test server.
+///
+/// These tests verify end-to-end SMTP and IMAP interactions, including message delivery,
+/// attachment handling, policy enforcement, and send gating.
 use std::collections::HashMap;
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -12,6 +16,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::{sleep, timeout};
 
+/// Generates a unique string based on the current timestamp for test isolation.
 fn nonce() -> String {
     let micros = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -20,6 +25,7 @@ fn nonce() -> String {
     micros.to_string()
 }
 
+/// Test harness for interacting with a GreenMail SMTP/IMAP server.
 struct GreenmailHarness {
     smtp_host: String,
     smtp_port: u16,
@@ -32,6 +38,7 @@ struct GreenmailHarness {
 }
 
 impl GreenmailHarness {
+    /// Starts the GreenMail test harness, waiting until both SMTP and IMAP are ready.
     async fn start() -> Result<Self, String> {
         let smtp_host = std::env::var("GREENMAIL_HOST").unwrap_or_else(|_| "localhost".to_owned());
         let imap_host = smtp_host.clone();
@@ -59,6 +66,7 @@ impl GreenmailHarness {
         Ok(harness)
     }
 
+    /// Waits until both SMTP and IMAP services are ready to accept connections.
     async fn wait_until_ready(&self) -> Result<(), String> {
         let mut last_error = String::new();
         for _ in 0..60 {
@@ -78,6 +86,7 @@ impl GreenmailHarness {
         ))
     }
 
+    /// Attempts to connect and authenticate to the IMAP server to verify readiness.
     async fn imap_probe(&self) -> Result<(), String> {
         let tcp = timeout(
             Duration::from_secs(2),
@@ -113,6 +122,7 @@ impl GreenmailHarness {
         Ok(())
     }
 
+    /// Attempts to connect and send an EHLO to the SMTP server to verify readiness.
     async fn smtp_probe(&self) -> Result<(), String> {
         let mut stream = timeout(
             Duration::from_secs(2),
@@ -153,6 +163,7 @@ impl GreenmailHarness {
         Ok(())
     }
 
+    /// Returns a HashMap of environment variables for configuring the test server.
     fn base_env(&self, send_enabled: bool) -> HashMap<String, String> {
         HashMap::from([
             ("MAIL_SMTP_DEFAULT_HOST".to_owned(), self.smtp_host.clone()),
@@ -174,6 +185,7 @@ impl GreenmailHarness {
         ])
     }
 
+    /// Fetches all messages from the INBOX of the test IMAP account.
     async fn inbox_messages(&self) -> Result<Vec<String>, String> {
         let tcp = timeout(
             Duration::from_secs(3),
@@ -239,10 +251,12 @@ impl GreenmailHarness {
         Ok(raw_messages)
     }
 
+    /// Returns the number of messages currently in the INBOX.
     async fn inbox_count(&self) -> Result<usize, String> {
         Ok(self.inbox_messages().await?.len())
     }
 
+    /// Asserts that the inbox message count remains stable over a number of attempts.
     async fn assert_inbox_count_stable(
         &self,
         baseline: usize,
@@ -263,11 +277,13 @@ impl GreenmailHarness {
     }
 }
 
+/// Creates an MCP server instance from the provided environment configuration.
 fn server_from_env(env: HashMap<String, String>) -> McpServer {
     let config = load_server_config(&env);
     McpServer::new(config)
 }
 
+/// Integration test: verifies that a message is successfully delivered to the recipient's INBOX.
 #[tokio::test]
 #[serial_test::serial]
 #[ignore = "requires GreenMail"]
@@ -312,6 +328,7 @@ async fn send_message_success_delivers_mail() {
     assert!(delivered, "expected delivered mail in INBOX");
 }
 
+/// Integration test: verifies that a message with an attachment is delivered and the MIME part is present.
 #[tokio::test]
 #[serial_test::serial]
 #[ignore = "requires GreenMail"]
@@ -361,6 +378,7 @@ async fn send_message_with_attachment_delivers_mime_part() {
     assert!(delivered, "expected attachment mail in INBOX");
 }
 
+/// Integration test: verifies that sending is blocked when MAIL_SMTP_SEND_ENABLED is false.
 #[tokio::test]
 #[serial_test::serial]
 #[ignore = "requires GreenMail"]
@@ -388,6 +406,7 @@ async fn send_disabled_blocks_live_send() {
         .expect("send-disabled must not deliver mail");
 }
 
+/// Integration test: verifies that allowlist policy blocks recipients before SMTP delivery.
 #[tokio::test]
 #[serial_test::serial]
 #[ignore = "requires GreenMail"]

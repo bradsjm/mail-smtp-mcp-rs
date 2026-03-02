@@ -5,19 +5,31 @@ use regex::Regex;
 
 use crate::errors::AppError;
 
+/// Represents the sizes of various parts of an email message for estimation purposes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MessageSizeParts {
+    /// Number of bytes in the subject.
     pub subject_bytes: usize,
+    /// Number of bytes in the plain text body.
     pub text_bytes: usize,
+    /// Number of bytes in the HTML body.
     pub html_bytes: usize,
+    /// Total bytes of all attachments.
     pub attachment_bytes: usize,
+    /// Number of attachments.
     pub attachment_count: usize,
 }
 
+/// Returns `true` if the string contains carriage return or line feed characters.
+///
+/// Used to prevent header injection and invalid input.
 pub fn contains_carriage_return_or_line_feed(value: &str) -> bool {
     value.contains('\n') || value.contains('\r')
 }
 
+/// Validates an email address for correct format and absence of line breaks.
+///
+/// Returns `Ok(())` if valid, or an `AppError` if invalid.
 pub fn validate_email_address(value: &str) -> Result<(), AppError> {
     if contains_carriage_return_or_line_feed(value) {
         return Err(AppError::ValidationError(
@@ -35,10 +47,12 @@ pub fn validate_email_address(value: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+/// Normalizes an email address by trimming and converting to lowercase.
 pub fn normalize_address(value: &str) -> String {
     value.trim().to_ascii_lowercase()
 }
 
+/// Extracts the domain part of an email address, if present.
 pub fn email_domain(value: &str) -> Option<&str> {
     let normalized = value.trim();
     let (_, domain) = normalized.split_once('@')?;
@@ -48,6 +62,7 @@ pub fn email_domain(value: &str) -> Option<&str> {
     Some(domain)
 }
 
+/// Checks if a filename is safe for use (no path traversal, no slashes, reasonable length).
 pub fn is_safe_filename(value: &str) -> bool {
     if value.is_empty() || value.len() > 256 {
         return false;
@@ -61,6 +76,9 @@ pub fn is_safe_filename(value: &str) -> bool {
     !contains_carriage_return_or_line_feed(value)
 }
 
+/// Decodes a base64 string strictly, rejecting input with leading/trailing whitespace.
+///
+/// Returns the decoded bytes or an `AppError` if invalid.
 pub fn decode_base64_strict(input: &str) -> Result<Vec<u8>, AppError> {
     if input.trim() != input {
         return Err(AppError::AttachmentError(
@@ -73,6 +91,7 @@ pub fn decode_base64_strict(input: &str) -> Result<Vec<u8>, AppError> {
         .map_err(|_| AppError::AttachmentError("Invalid base64 content for attachment.".to_owned()))
 }
 
+/// Estimates the total size in bytes of an email message, including headers and attachments.
 pub fn estimate_message_bytes(parts: MessageSizeParts) -> usize {
     const BASE_HEADERS_OVERHEAD: usize = 1024;
     const MULTIPART_BOUNDARY_OVERHEAD: usize = 256;
@@ -87,6 +106,7 @@ pub fn estimate_message_bytes(parts: MessageSizeParts) -> usize {
         + (parts.attachment_count * PER_ATTACHMENT_OVERHEAD)
 }
 
+/// Estimates the size in bytes of base64-encoded data, including line breaks.
 pub fn estimate_base64_transport_bytes(raw_bytes: usize) -> usize {
     if raw_bytes == 0 {
         return 0;

@@ -2,18 +2,24 @@ use crate::config::PolicyConfig;
 use crate::errors::AppError;
 use crate::validation::{email_domain, normalize_address, validate_email_address};
 
+/// Represents the recipients of an email, including To, Cc, and Bcc fields.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Recipients {
+    /// List of primary recipients (To).
     pub to: Vec<String>,
+    /// List of carbon copy recipients (Cc).
     pub cc: Vec<String>,
+    /// List of blind carbon copy recipients (Bcc).
     pub bcc: Vec<String>,
 }
 
 impl Recipients {
+    /// Returns the total number of recipients (to + cc + bcc).
     pub fn total(&self) -> usize {
         self.to.len() + self.cc.len() + self.bcc.len()
     }
 
+    /// Returns an iterator over all recipient email addresses.
     pub fn all(&self) -> impl Iterator<Item = &str> {
         self.to
             .iter()
@@ -23,6 +29,10 @@ impl Recipients {
     }
 }
 
+/// Normalizes and validates recipient lists, ensuring at least one "to" recipient is present.
+///
+/// Trims whitespace, lowercases addresses, and validates email format.
+/// Returns an error if no "to" recipient is provided or if any address is invalid.
 pub fn normalize_recipients(
     to: Vec<String>,
     cc: Vec<String>,
@@ -43,6 +53,9 @@ pub fn normalize_recipients(
     Ok(normalized)
 }
 
+/// Enforces recipient-related policy constraints (max recipients, allowlists).
+///
+/// Returns an error if the recipient count exceeds policy or if recipients are not allowed.
 pub fn enforce_recipient_policy(
     policy: &PolicyConfig,
     recipients: &Recipients,
@@ -77,6 +90,7 @@ pub fn enforce_recipient_policy(
     Ok(())
 }
 
+// Normalizes and validates a list of email addresses.
 fn normalize_list(input: Vec<String>) -> Result<Vec<String>, AppError> {
     let mut out = Vec::new();
 
@@ -111,8 +125,8 @@ mod tests {
     #[test]
     fn normalizes_and_lowercases_recipient_lists() {
         let recipients = normalize_recipients(
-            vec![" Alice@Example.COM ".to_string()],
-            vec!["  ".to_string(), "Bob@Example.com".to_string()],
+            vec![ " Alice@Example.COM ".to_string() ],
+            vec![ "  ".to_string(), "Bob@Example.com".to_string() ],
             vec![],
         )
         .expect("must normalize");

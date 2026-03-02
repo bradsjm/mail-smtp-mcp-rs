@@ -11,13 +11,20 @@ use crate::server::McpServer;
 
 static LOG_INIT: Once = Once::new();
 
+/// Result of startup environment checks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StartupCheck {
+    /// True if all required configuration is present.
     pub ok: bool,
+    /// List of discovered account IDs.
     pub account_ids: Vec<String>,
+    /// List of missing required environment variable keys.
     pub missing_env: Vec<String>,
 }
 
+/// Checks the startup environment for required SMTP account configuration.
+///
+/// Returns a `StartupCheck` indicating discovered accounts and missing variables.
 pub fn check_startup_env(env: &HashMap<String, String>) -> StartupCheck {
     let account_ids = list_account_ids(env);
     let mut missing_env = Vec::new();
@@ -33,6 +40,9 @@ pub fn check_startup_env(env: &HashMap<String, String>) -> StartupCheck {
     }
 }
 
+/// Initializes logging, checks configuration, and starts the MCP server.
+///
+/// Returns an error if configuration is missing or startup fails.
 pub async fn run() -> Result<(), AppError> {
     init_logging();
     let env: HashMap<String, String> = std::env::vars().collect();
@@ -69,6 +79,7 @@ pub async fn run() -> Result<(), AppError> {
     Ok(())
 }
 
+/// Initializes logging for the application (idempotent).
 fn init_logging() {
     LOG_INIT.call_once(|| {
         tracing_subscriber::fmt()

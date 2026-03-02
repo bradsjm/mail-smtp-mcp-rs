@@ -7,6 +7,9 @@ use mail_smtp_mcp_rs::config::{
     DEFAULT_MAX_TEXT_CHARS, DEFAULT_SOCKET_TIMEOUT_MS,
 };
 
+/// Entry point for the mail-smtp-mcp-rs application.
+///
+/// Loads environment variables, checks for help flags, and starts the MCP server.
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
@@ -25,6 +28,7 @@ async fn main() {
     }
 }
 
+/// Returns `true` if the provided arguments request help output (`--help` or `-h`).
 fn should_print_help<I>(args: I) -> bool
 where
     I: IntoIterator,
@@ -36,6 +40,7 @@ where
     })
 }
 
+/// Prints the help output to stdout, describing usage and environment variables.
 fn print_help_output() -> io::Result<()> {
     let env_map: BTreeMap<String, String> = std::env::vars().collect();
     let output = build_help_output(&env_map);
@@ -44,6 +49,7 @@ fn print_help_output() -> io::Result<()> {
     stdout.flush()
 }
 
+/// Builds the help output string, including discovered account sections and policy defaults.
 fn build_help_output(env_map: &BTreeMap<String, String>) -> String {
     let account_sections = discover_account_sections(env_map);
     let mut out = String::new();
@@ -121,6 +127,7 @@ fn build_help_output(env_map: &BTreeMap<String, String>) -> String {
     out
 }
 
+/// Discovers all unique account sections from the environment variable map.
 fn discover_account_sections(env_map: &BTreeMap<String, String>) -> Vec<String> {
     let mut sections: Vec<String> = env_map
         .keys()
@@ -142,6 +149,7 @@ fn discover_account_sections(env_map: &BTreeMap<String, String>) -> Vec<String> 
     sections
 }
 
+/// Redacts secret values (such as passwords) for display in help output.
 fn redact_value(key: &str, value: Option<&str>) -> String {
     match value {
         Some(v) if is_secret_key(key) && !v.is_empty() => "<redacted>".to_owned(),
@@ -151,6 +159,7 @@ fn redact_value(key: &str, value: Option<&str>) -> String {
     }
 }
 
+/// Returns `true` if the key is considered secret (e.g., contains "PASS").
 fn is_secret_key(key: &str) -> bool {
     key.to_ascii_uppercase().contains("PASS")
 }

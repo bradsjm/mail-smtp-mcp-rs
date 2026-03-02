@@ -54,10 +54,10 @@ pub struct McpServer {
 }
 
 #[derive(Debug, Serialize, JsonSchema)]
+/// Metadata for responses, including timing information.
 struct Meta {
     now_utc: String,
-    #[schemars(schema_with = "schema_uint64_without_format")]
-    duration_ms: u64,
+    duration_ms: u128,
 }
 
 impl Meta {
@@ -80,20 +80,22 @@ where
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+/// Input for listing accounts, optionally filtered by account ID.
 struct ListAccountsInput {
     account_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, JsonSchema)]
+/// Data returned when listing accounts.
 struct ListAccountsData {
-    accounts: Vec<ListAccountMetadata>,
+    accounts: Vec<AccountMetadata>,
 }
 
 #[derive(Debug, Serialize, JsonSchema)]
+/// Metadata for a single account in the list accounts response.
 struct ListAccountMetadata {
     account_id: String,
     host: String,
-    #[schemars(schema_with = "schema_uint16_without_format")]
     port: u16,
     secure: bool,
     default_from: Option<String>,
@@ -118,6 +120,7 @@ struct Envelope {
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(untagged)]
+/// Helper enum for accepting either a single string or a list of strings.
 enum StringOrList {
     One(String),
     Many(Vec<String>),
@@ -133,16 +136,18 @@ impl StringOrList {
 }
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
+/// Input for an email attachment.
 struct AttachmentInput {
     filename: String,
     content_base64: String,
-    content_type: Option<String>,
+    content_type: String,
 }
 
+/// Represents a prepared attachment with decoded bytes.
 struct PreparedAttachment {
     filename: String,
     bytes: Vec<u8>,
-    content_type: ContentType,
+    content_type: String,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
