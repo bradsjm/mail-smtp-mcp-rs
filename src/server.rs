@@ -9,7 +9,7 @@ use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{ErrorData, ServerCapabilities, ServerInfo};
 use rmcp::{Json, ServerHandler, tool, tool_handler, tool_router};
-use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
+use schemars::JsonSchema;
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -32,21 +32,6 @@ const HARD_MAX_SUBJECT_CHARS: usize = 256;
 
 pub const TOOL_NAMES: [&str; 2] = ["smtp_list_accounts", "smtp_send_message"];
 
-fn schema_uint16_without_format(_: &mut SchemaGenerator) -> Schema {
-    json_schema!({
-        "type": "integer",
-        "minimum": 0,
-        "maximum": 65_535
-    })
-}
-
-fn schema_uint64_without_format(_: &mut SchemaGenerator) -> Schema {
-    json_schema!({
-        "type": "integer",
-        "minimum": 0
-    })
-}
-
 #[derive(Clone)]
 pub struct McpServer {
     config: Arc<ServerConfig>,
@@ -64,7 +49,7 @@ impl Meta {
     fn now(duration_ms: u64) -> Self {
         Self {
             now_utc: Utc::now().to_rfc3339(),
-            duration_ms,
+            duration_ms: u128::from(duration_ms),
         }
     }
 }
@@ -88,7 +73,7 @@ struct ListAccountsInput {
 #[derive(Debug, Serialize, JsonSchema)]
 /// Data returned when listing accounts.
 struct ListAccountsData {
-    accounts: Vec<AccountMetadata>,
+    accounts: Vec<ListAccountMetadata>,
 }
 
 #[derive(Debug, Serialize, JsonSchema)]
@@ -140,14 +125,14 @@ impl StringOrList {
 struct AttachmentInput {
     filename: String,
     content_base64: String,
-    content_type: String,
+    content_type: Option<String>,
 }
 
 /// Represents a prepared attachment with decoded bytes.
 struct PreparedAttachment {
     filename: String,
     bytes: Vec<u8>,
-    content_type: String,
+    content_type: ContentType,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

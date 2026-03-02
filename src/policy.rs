@@ -125,8 +125,8 @@ mod tests {
     #[test]
     fn normalizes_and_lowercases_recipient_lists() {
         let recipients = normalize_recipients(
-            vec![ " Alice@Example.COM ".to_string() ],
-            vec![ "  ".to_string(), "Bob@Example.com".to_string() ],
+            vec![" Alice@Example.COM ".to_string()],
+            vec!["  ".to_string(), "Bob@Example.com".to_string()],
             vec![],
         )
         .expect("must normalize");
