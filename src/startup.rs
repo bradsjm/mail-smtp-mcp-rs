@@ -86,6 +86,7 @@ fn init_logging() {
             .with_writer(std::io::stderr)
             .with_env_filter(EnvFilter::from_default_env())
             .init();
+        tracing::info!("starting MCP server transport=Stdio");
     });
 }
 
