@@ -1,9 +1,10 @@
-FROM rust:1.85-bookworm AS builder
+FROM rust:1-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache musl-dev
 COPY . .
 RUN cargo build --release
 
-FROM debian:bookworm-slim
+FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/target/release/mail-smtp-mcp-rs /usr/local/bin/mail-smtp-mcp-rs
-ENTRYPOINT ["/usr/local/bin/mail-smtp-mcp-rs"]
+COPY --from=builder /app/target/release/mail-smtp-mcp-rs /mail-smtp-mcp-rs
+ENTRYPOINT ["/mail-smtp-mcp-rs"]
