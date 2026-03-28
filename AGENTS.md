@@ -145,6 +145,8 @@ All listed workflows are currently manual (`workflow_dispatch`).
 - npm package name: `@bradsjm/mail-smtp-mcp-rs`
 - Release workflow publishes npm artifacts with provenance (`npm publish --provenance`).
 - Placeholder bootstrap workflow exists to initialize the npm package before trusted publishing setup.
+- Current npm/native release targets: `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `x86_64-pc-windows-msvc`
+- Linux musl support is `x86_64`-only; Linux ARM64 and Windows ARM64 npm installs are not supported.
 
 ### Dist Configuration
 

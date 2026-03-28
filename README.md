@@ -17,6 +17,14 @@ It provides a focused tool surface for listing configured SMTP accounts and send
 
 Pick one of the supported install methods.
 
+Supported release artifacts:
+
+- macOS: `aarch64-apple-darwin`, `x86_64-apple-darwin`
+- Linux: `x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`
+- Windows: `x86_64-pc-windows-msvc`
+
+Linux musl support covers `x86_64` systems such as Alpine. Linux ARM64 npm installs are not supported.
+
 ### NPX (recommended)
 
 ```bash
@@ -207,6 +215,12 @@ Check host/port/secure settings, credentials, and network reachability. Tune:
 
 - `MAIL_SMTP_CONNECT_TIMEOUT_MS`
 - `MAIL_SMTP_SOCKET_TIMEOUT_MS`
+
+### npm install or npx fails on an unsupported platform
+
+The published npm package supports only the release artifacts listed above. Common unsupported cases include Linux ARM64 and Windows ARM64.
+
+On Linux `x86_64`, both glibc and musl environments are supported. For other platforms, use Docker or install from source if you need to run the server outside the published npm matrix.
 
 ## Security Notes
 
