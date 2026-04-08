@@ -436,14 +436,9 @@ impl McpServer {
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for McpServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some(
-                "SMTP MCP server with two tools: smtp_list_accounts and smtp_send_message. Sending requires MAIL_SMTP_SEND_ENABLED=true."
-                    .to_owned(),
-            ),
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            ..Default::default()
-        }
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build()).with_instructions(
+            "SMTP MCP server with two tools: smtp_list_accounts and smtp_send_message. Sending requires MAIL_SMTP_SEND_ENABLED=true.",
+        )
     }
 }
 

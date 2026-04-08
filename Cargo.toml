@@ -1,6 +1,6 @@
 [package]
 name = "mail-smtp-mcp-rs"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 license = "MIT"
 description = "Secure SMTP MCP server over stdio with multi-account support, and TLS-only connections"
@@ -15,7 +15,7 @@ chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 lettre = { version = "0.11", default-features = false, features = ["builder", "hostname", "pool", "smtp-transport", "tokio1-rustls-tls"] }
 regex = "1"
-rmcp = { version = "0.7", features = ["server", "transport-io", "schemars", "macros"] }
+rmcp = { version = "1.3", features = ["server", "transport-io", "schemars", "macros"] }
 schemars = { version = "1.2", features = ["chrono04", "uuid1"] }
 secrecy = "0.10"
 serde = { version = "1", features = ["derive"] }
@@ -30,8 +30,8 @@ async-imap = { version = "0.11.2", default-features = false, features = ["runtim
 futures-util = "0.3"
 mailparse = "0.16.1"
 serial_test = "3"
-testcontainers = "0.23"
-testcontainers-modules = { version = "0.11", features = ["blocking"] }
+testcontainers = "0.27"
+testcontainers-modules = { version = "0.15", features = ["blocking"] }
 
 [profile.dist]
 inherits = "release"
