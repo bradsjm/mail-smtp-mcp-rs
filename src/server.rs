@@ -32,6 +32,9 @@ const HARD_MAX_SUBJECT_CHARS: usize = 256;
 
 pub const TOOL_NAMES: [&str; 2] = ["smtp_list_accounts", "smtp_send_message"];
 
+type ListAccountsOutput = ToolEnvelope<ListAccountsData>;
+type SendMessageOutput = ToolEnvelope<SendMessageData>;
+
 fn schema_uint16_without_format(_: &mut SchemaGenerator) -> Schema {
     json_schema!({
         "type": "integer",
@@ -182,21 +185,28 @@ impl McpServer {
 
     #[tool(
         name = "smtp_list_accounts",
-        description = "List configured SMTP accounts"
+        description = "List configured SMTP accounts",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ListAccountsOutput>()
+            .expect("smtp_list_accounts output schema must be an object")
     )]
     async fn list_accounts(
         &self,
         Parameters(input): Parameters<ListAccountsInput>,
-    ) -> Result<Json<ToolEnvelope<ListAccountsData>>, ErrorData> {
+    ) -> Result<Json<ListAccountsOutput>, ErrorData> {
         let started = Instant::now();
         finalize_tool(started, self.list_accounts_impl(input))
     }
 
-    #[tool(name = "smtp_send_message", description = "Send an SMTP email message")]
+    #[tool(
+        name = "smtp_send_message",
+        description = "Send an SMTP email message",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<SendMessageOutput>()
+            .expect("smtp_send_message output schema must be an object")
+    )]
     async fn send_message(
         &self,
         Parameters(input): Parameters<SendMessageInput>,
-    ) -> Result<Json<ToolEnvelope<SendMessageData>>, ErrorData> {
+    ) -> Result<Json<SendMessageOutput>, ErrorData> {
         let started = Instant::now();
         finalize_tool(started, self.send_message_impl(input).await)
     }
@@ -614,6 +624,7 @@ mod tests {
     use super::{ListAccountsInput, McpServer, TOOL_NAMES};
     use crate::config::{PolicyConfig, ServerConfig};
     use crate::errors::ErrorCode;
+    use serde_json::Value;
 
     fn empty_server() -> McpServer {
         McpServer::new(ServerConfig {
@@ -648,5 +659,59 @@ mod tests {
             })
             .expect_err("must fail");
         assert_eq!(err.code(), ErrorCode::ConfigMissing);
+    }
+
+    #[test]
+    fn tool_output_schemas_match_envelope_contract() {
+        let server = empty_server();
+        let tools = server.tool_router.list_all();
+
+        let list_accounts = tools
+            .iter()
+            .find(|tool| tool.name == "smtp_list_accounts")
+            .expect("smtp_list_accounts tool must be registered");
+        let list_accounts_schema = serde_json::to_value(
+            list_accounts
+                .output_schema
+                .as_ref()
+                .expect("smtp_list_accounts must publish output schema"),
+        )
+        .expect("schema must serialize");
+        assert_schema_contains(&list_accounts_schema, "summary");
+        assert_schema_contains(&list_accounts_schema, "data");
+        assert_schema_contains(&list_accounts_schema, "meta");
+        assert_schema_contains(&list_accounts_schema, "accounts");
+        assert_schema_contains(&list_accounts_schema, "account_id");
+        assert_schema_contains(&list_accounts_schema, "host");
+        assert_schema_contains(&list_accounts_schema, "port");
+        assert_schema_contains(&list_accounts_schema, "default_from");
+
+        let send_message = tools
+            .iter()
+            .find(|tool| tool.name == "smtp_send_message")
+            .expect("smtp_send_message tool must be registered");
+        let send_message_schema = serde_json::to_value(
+            send_message
+                .output_schema
+                .as_ref()
+                .expect("smtp_send_message must publish output schema"),
+        )
+        .expect("schema must serialize");
+        assert_schema_contains(&send_message_schema, "summary");
+        assert_schema_contains(&send_message_schema, "data");
+        assert_schema_contains(&send_message_schema, "meta");
+        assert_schema_contains(&send_message_schema, "account_id");
+        assert_schema_contains(&send_message_schema, "envelope");
+        assert_schema_contains(&send_message_schema, "accepted");
+        assert_schema_contains(&send_message_schema, "rejected");
+        assert_schema_contains(&send_message_schema, "message_id");
+    }
+
+    fn assert_schema_contains(schema: &Value, needle: &str) {
+        let serialized = serde_json::to_string(schema).expect("schema must serialize");
+        assert!(
+            serialized.contains(&format!("\"{needle}\"")),
+            "expected schema to contain {needle}, got {serialized}"
+        );
     }
 }
